@@ -25,7 +25,7 @@ export default class TaskList extends Component {
   };
 
   render() {
-    const { tasks, onTaskToggle, onTaskDelete, filter, onTaskEdit } = this.props;
+    const { tasks, onTaskToggle, onTaskDelete, filter, onTaskEdit, onStartTaskTimer, onStopTaskTimer } = this.props;
 
     const filteredTasks =
       filter === 'all'
@@ -43,6 +43,8 @@ export default class TaskList extends Component {
             onTaskToggle={onTaskToggle}
             onTaskDelete={onTaskDelete}
             onTaskEdit={onTaskEdit}
+            onStartTimer={onStartTaskTimer}
+            onStopTimer={onStopTaskTimer}
           />
         ))}
       </ul>

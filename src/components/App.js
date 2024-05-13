@@ -38,18 +38,63 @@ export default class App extends Component {
     });
   };
 
-  AddItem = (taskDescription) => {
+  AddItem = (taskDescription, minutes, seconds) => {
     const newTask = {
       id: this.state.nextId,
       description: taskDescription,
       completed: false,
       created: new Date(),
       selected: '',
+      timer: {
+        isRunning: false,
+        totalSeconds: minutes * 60 + seconds,
+        elapsedSeconds: 0,
+      },
     };
 
     this.setState((prevState) => ({
       tasks: prevState.tasks.concat(newTask),
       nextId: prevState.nextId + 1,
+    }));
+  };
+
+  startTaskTimer = (taskId) => {
+    const task = this.state.tasks.find((task) => task.id === taskId);
+    const { elapsedSeconds } = task.timer;
+
+    this.taskTimerInterval = setInterval(() => {
+      this.updateTaskTimer(taskId);
+    }, 1000);
+
+    this.setState((prevState) => ({
+      tasks: prevState.tasks.map((task) =>
+        task.id === taskId ? { ...task, timer: { ...task.timer, elapsedSeconds, isRunning: true } } : task
+      ),
+    }));
+  };
+
+  updateTaskTimer = (taskId) => {
+    const task = this.state.tasks.find((task) => task.id === taskId);
+    const { totalSeconds, elapsedSeconds } = task.timer;
+
+    if (elapsedSeconds >= totalSeconds) {
+      return;
+    }
+
+    this.setState((prevState) => ({
+      tasks: prevState.tasks.map((task) =>
+        task.id === taskId ? { ...task, timer: { ...task.timer, elapsedSeconds: elapsedSeconds + 1 } } : task
+      ),
+    }));
+  };
+
+  stopTaskTimer = (taskId) => {
+    clearInterval(this.taskTimerInterval);
+
+    this.setState((prevState) => ({
+      tasks: prevState.tasks.map((task) =>
+        task.id === taskId ? { ...task, timer: { ...task.timer, isRunning: false } } : task
+      ),
     }));
   };
 
@@ -59,6 +104,7 @@ export default class App extends Component {
     return (
       <section className="todoapp">
         <header>
+          <h1>todos</h1>
           <NewTaskForm AddItem={this.AddItem} />
         </header>
         <section className="main">
@@ -69,6 +115,8 @@ export default class App extends Component {
             onTaskEdit={this.handleTaskEdit}
             filter={filter}
             nextId={nextId}
+            onStartTaskTimer={this.startTaskTimer}
+            onStopTaskTimer={this.stopTaskTimer}
           />
           <Footer
             tasks={tasks}
