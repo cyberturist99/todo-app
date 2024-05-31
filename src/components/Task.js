@@ -1,12 +1,21 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { formatDistanceToNow } from 'date-fns';
+import TimerContext from './TimerContext';
 
 export default class Task extends Component {
   state = {
     editing: false,
     newDescription: this.props.task.description,
   };
+
+  static contextType = TimerContext;
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.task.description !== this.props.task.description) {
+      this.setState({ newDescription: this.props.task.description });
+    }
+  }
 
   handleTaskClick = () => {
     this.props.onTaskToggle(this.props.task.id);
@@ -32,18 +41,12 @@ export default class Task extends Component {
     }
   };
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.task.description !== this.props.task.description) {
-      this.setState({ newDescription: this.props.task.description });
-    }
-  }
-
   startTimer = () => {
-    this.props.onStartTimer(this.props.task.id);
+    this.context.startTaskTimer(this.props.task.id);
   };
 
   stopTimer = () => {
-    this.props.onStopTimer(this.props.task.id);
+    this.context.stopTaskTimer(this.props.task.id);
   };
 
   formatSeconds = (seconds) => {
@@ -79,7 +82,7 @@ export default class Task extends Component {
           <span className="description">
             <button className="icon icon-play" onClick={this.startTimer} disabled={isRunning}></button>
             <button className="icon icon-pause" onClick={this.stopTimer} disabled={!isRunning}></button>
-            {this.formatSeconds(remainingTime)}
+            <span className="timer-remaining-time">{this.formatSeconds(remainingTime)}</span>
           </span>
           <span className="description">{formatDistanceToNow(task.created, { includeSeconds: true })}</span>
         </label>

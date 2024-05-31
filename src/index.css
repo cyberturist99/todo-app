@@ -4,6 +4,10 @@ body {
   padding: 0;
 }
 
+.timer-remaining-time {
+  margin-left: 10px;
+}
+
 button {
   margin: 0;
   padding: 0;
