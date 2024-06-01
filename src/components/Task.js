@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { formatDistanceToNow } from 'date-fns';
+
 import TimerContext from './TimerContext';
 
 export default class Task extends Component {
@@ -55,12 +56,6 @@ export default class Task extends Component {
 
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  componentWillUnmount() {
-    if (this.props.task.timer.isRunning) {
-      this.props.onStopTimer(this.props.task.id);
-    }
-  }
 
   render() {
     const { task } = this.props;
