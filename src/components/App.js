@@ -1,158 +1,161 @@
-import { Component } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import TaskList from './TaskList';
 import NewTaskForm from './NewTaskForm';
 import Footer from './Footer';
 import TimerContext from './TimerContext';
 
-export default class App extends Component {
-  state = {
-    tasks: [],
-    nextId: 0,
-    filter: 'all',
-  };
+const App = () => {
+  const [tasks, setTasks] = useState([]);
+  const [nextId, setNextId] = useState(0);
+  const [filter, setFilter] = useState('all');
 
-  deleteAllCompletedTasks = () => {
-    const remainingTasks = this.state.tasks.filter((task) => !task.completed);
-    this.setState({ tasks: remainingTasks });
-  };
+  const deleteAllCompletedTasks = useCallback(() => {
+    setTasks(tasks.filter((task) => !task.completed));
+  }, [tasks]);
 
-  handleFilterChange = (filter) => {
-    this.setState({ filter });
-  };
+  const handleFilterChange = useCallback((filter) => {
+    setFilter(filter);
+  }, []);
 
-  handleTaskToggle = (taskId) => {
-    this.stopTaskTimer(taskId);
-    this.setState((prevState) => ({
-      tasks: prevState.tasks.map((task) => (task.id === taskId ? { ...task, completed: !task.completed } : task)),
-    }));
-  };
+  const handleTaskToggle = useCallback(
+    (taskId) => {
+      stopTaskTimer(taskId);
+      setTasks(
+        tasks.map((task) =>
+          task.id === taskId
+            ? { ...task, completed: !task.completed, timer: { ...task.timer, totalSeconds: 0, elapsedSeconds: 0 } }
+            : task
+        )
+      );
+    },
+    [tasks]
+  );
 
-  handleTaskDelete = (taskId) => {
-    this.setState((prevState) => ({
-      tasks: prevState.tasks.filter((task) => task.id !== taskId),
-    }));
+  const handleTaskDelete = useCallback(
+    (taskId) => {
+      setTasks(tasks.filter((task) => task.id !== taskId));
 
-    const task = this.state.tasks.find((task) => task.id === taskId);
+      const task = tasks.find((task) => task.id === taskId);
 
-    if (task) {
-      // убеждаемся, что задача существует
-      clearInterval(task.timerInterval); // удаляем интервал таймера из свойства
-    }
-  };
+      if (task) {
+        clearInterval(task.timerInterval);
+      }
+    },
+    [tasks]
+  );
 
-  handleTaskEdit = (editedTask) => {
-    this.setState({
-      tasks: this.state.tasks.map((task) => (task.id === editedTask.id ? editedTask : task)),
-    });
-  };
+  const handleTaskEdit = useCallback(
+    (editedTask) => {
+      setTasks(tasks.map((task) => (task.id === editedTask.id ? editedTask : task)));
+    },
+    [tasks]
+  );
 
-  AddItem = (taskDescription, minutes, seconds) => {
-    const newTask = {
-      id: this.state.nextId,
-      description: taskDescription,
-      completed: false,
-      created: new Date(),
-      selected: '',
-      timer: {
-        isRunning: false,
-        totalSeconds: minutes * 60 + seconds,
-        elapsedSeconds: 0,
-      },
-      timerInterval: null,
-    };
+  const AddItem = useCallback(
+    (taskDescription, minutes, seconds) => {
+      if (!minutes && !seconds) {
+        alert('Пожалуйста введите время');
+        return;
+      }
+      const newTask = {
+        id: nextId,
+        description: taskDescription,
+        completed: false,
+        created: new Date(),
+        selected: '',
+        timer: {
+          isRunning: false,
+          totalSeconds: minutes * 60 + seconds,
+          elapsedSeconds: 0,
+        },
+        timerInterval: null,
+      };
 
-    this.setState((prevState) => ({
-      tasks: [...this.state.tasks, newTask],
-      nextId: prevState.nextId + 1,
-    }));
-  };
+      setTasks([...tasks, newTask]);
+      setNextId(nextId + 1);
+    },
+    [tasks, nextId]
+  );
 
-  startTaskTimer = (taskId) => {
-    const task = this.state.tasks.find((task) => task.id === taskId);
+  const startTaskTimer = (taskId) => {
+    const task = tasks.find((task) => task.id === taskId);
 
     if (task) {
       // убеждаемся, что задача существует
       const { elapsedSeconds } = task.timer;
 
+      let currentElapsedSeconds = elapsedSeconds;
       task.timerInterval = setInterval(() => {
-        this.updateTaskTimer(taskId);
+        currentElapsedSeconds += 1;
+        updateTaskTimer(taskId, currentElapsedSeconds);
       }, 1000);
 
-      this.setState((prevState) => ({
-        tasks: prevState.tasks.map((task) =>
+      setTasks((prevState) =>
+        prevState.map((task) =>
           task.id === taskId ? { ...task, timer: { ...task.timer, elapsedSeconds, isRunning: true } } : task
-        ),
-      }));
+        )
+      );
     }
   };
 
-  updateTaskTimer = (taskId) => {
-    const task = this.state.tasks.find((task) => task.id === taskId);
-    const { totalSeconds, elapsedSeconds } = task.timer;
+  const updateTaskTimer = (taskId, elapsedSeconds) => {
+    const task = tasks.find((task) => task.id === taskId);
+    const { totalSeconds } = task.timer;
 
-    if (elapsedSeconds >= totalSeconds) {
+    if (elapsedSeconds > totalSeconds) {
       return;
     }
 
-    this.setState((prevState) => ({
-      tasks: prevState.tasks.map((task) =>
-        task.id === taskId ? { ...task, timer: { ...task.timer, elapsedSeconds: elapsedSeconds + 1 } } : task
-      ),
-    }));
+    setTasks((prevState) =>
+      prevState.map((task) => (task.id === taskId ? { ...task, timer: { ...task.timer, elapsedSeconds } } : task))
+    );
   };
 
-  stopTaskTimer = (taskId) => {
-    const task = this.state.tasks.find((task) => task.id === taskId);
+  const stopTaskTimer = (taskId) => {
+    const task = tasks.find((task) => task.id === taskId);
 
     if (task) {
       // убеждаемся, что задача существует
       clearInterval(task.timerInterval); // удаляем интервал таймера из свойства
 
-      this.setState((prevState) => ({
-        tasks: prevState.tasks.map((task) =>
-          task.id === taskId ? { ...task, timer: { ...task.timer, isRunning: false } } : task
-        ),
-      }));
+      setTasks((prevState) =>
+        prevState.map((task) => (task.id === taskId ? { ...task, timer: { ...task.timer, isRunning: false } } : task))
+      );
     }
   };
 
-  render() {
-    const { tasks, filter, nextId } = this.state;
+  useEffect(() => {
+    const timers = tasks.filter((task) => task.timer.isRunning).map((task) => task.timerInterval);
 
-    return (
-      <section className="todoapp">
-        <header>
-          <h1>todos</h1>
-          <NewTaskForm AddItem={this.AddItem} />
-        </header>
-        <section className="main">
-          <TimerContext.Provider
-            value={{
-              startTaskTimer: this.startTaskTimer,
-              stopTaskTimer: this.stopTaskTimer,
-              updateTaskTimer: this.updateTaskTimer,
-            }}
-          >
-            <TaskList
-              tasks={tasks}
-              onTaskToggle={this.handleTaskToggle}
-              onTaskDelete={this.handleTaskDelete}
-              onTaskEdit={this.handleTaskEdit}
-              filter={filter}
-              nextId={nextId}
-              onStartTaskTimer={this.startTaskTimer}
-              onStopTaskTimer={this.stopTaskTimer}
-            />
+    return () => {
+      timers.forEach(clearInterval);
+    };
+  }, []);
 
-            <Footer
-              tasks={tasks}
-              onFilterChange={this.handleFilterChange}
-              onDeleteCompletedTasks={this.deleteAllCompletedTasks}
-            />
-          </TimerContext.Provider>
-        </section>
+  return (
+    <section className="todoapp">
+      <header>
+        <h1>todos</h1>
+        <NewTaskForm AddItem={AddItem} />
+      </header>
+      <section className="main">
+        <TimerContext.Provider value={{ startTaskTimer, stopTaskTimer, updateTaskTimer }}>
+          <TaskList
+            tasks={tasks}
+            onTaskToggle={handleTaskToggle}
+            onTaskDelete={handleTaskDelete}
+            onTaskEdit={handleTaskEdit}
+            filter={filter}
+            nextId={nextId}
+            onStartTaskTimer={startTaskTimer}
+            onStopTaskTimer={stopTaskTimer}
+          />
+          <Footer tasks={tasks} onFilterChange={handleFilterChange} onDeleteCompletedTasks={deleteAllCompletedTasks} />
+        </TimerContext.Provider>
       </section>
-    );
-  }
-}
+    </section>
+  );
+};
+
+export default App;
